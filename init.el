@@ -1,9 +1,9 @@
 ;; This is Jmacs - Jerry's interpretation of GNU Emacs!
 ;; Author:   Jerry Starke 
 ;; Created:  January 09, 2024
-;; Modified: January 10, 2024
-;; Version:  0.0.15
-;; Build:    1A34
+;; Modified: January 11, 2024
+;; Version:  0.0.18
+;; Build:    1A49
 ;; Homepage: https://github.com/JerrySM64
 
 ;;; Install Elpaca
@@ -114,18 +114,19 @@
     "b s" '(switch-to-buffer :wk "Switch to buffer"))
 
   (jmacs/leader-keys
-    "t" '(:ignore t :wk "Tabs")
-    "t n" '(tab-new :wk "Create a new tab")
-    "t d" '(tab-detach :wk "Detach this tab")
-    "t w" '(tab-close :wk "Close this tab"))
+    "t" '(:ignore t :wk "Toggle")
+    "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
+    "t t" '(visual-line-mode :wk "Toggle truncated lines")
+    "t v" '(vterm-toggle :wk "Toggle vterm"))
+    
 
   (jmacs/leader-keys
-    "e" '(:ignore t :wk "Evaluate")
-    "e b" '(eval-buffer :wk "Evaluate elisp in buffer")
-    "e d" '(eval-defun :wk "Evaluate defun containing or after point")
-    "e e" '(eval-expression :wk "Evaluate an elisp expression")
-    "e l" '(eval-last-expression :wk "Evaluate elisp expression before point")
-    "e r" '(eval-region :wk "Evaluate elisp in region"))
+    "E" '(:ignore t :wk "Evaluate")
+    "E b" '(eval-buffer :wk "Evaluate elisp in buffer")
+    "E d" '(eval-defun :wk "Evaluate defun containing or after point")
+    "E e" '(eval-expression :wk "Evaluate an elisp expression")
+    "E l" '(eval-last-expression :wk "Evaluate elisp expression before point")
+    "E r" '(eval-region :wk "Evaluate elisp in region"))
 
   (jmacs/leader-keys
     "." '(find-file :wk "Open file")
@@ -138,9 +139,10 @@
     "h r r" '(reload-jmacs :wk "Reload Jmacs"))
 
   (jmacs/leader-keys
-    "T" '(:ignore t :wk "Toggle")
-    "T l" '(display-line-numbers-mode :wk "Toggle line numbers")
-    "T t" '(visual-line-mode :wk "Toggle truncated lines"))
+    "T" '(:ignore t :wk "Tabs")
+    "T d" '(tab-detach :wk "Detach this tab")
+    "T n" '(tab-new :wk "Create a new tab")
+    "T w" '(tab-close :wk "Close this tab"))
 
   (jmacs/leader-keys
     "o" '(:ignore t :wk "Open")
@@ -154,7 +156,21 @@
     "i r" '(ivy-resume :wk "Ivy Resume"))
 
   (jmacs/leader-keys
-    "w" '(:ignore t :wk "Window"))
+    "w" '(:ignore t :wk "Virtual windows")
+    "w c" '(evil-window-delete :wk "Close window")
+    "w h" '(evil-window-left :wk "Window left")
+    "w j" '(evil-window-down :wk "Window down")
+    "w k" '(evil-window-up :wk "Window up")
+    "w l" '(evil-window-right :wk "Window right")
+    "w n" '(evil-window-new :wk "New window")
+    "w s" '(evil-window-split :wk "Horizontal split")
+    "w v" '(evil-window-vsplit :wk "Vertical split window")
+    "w w" '(evil-window-next :wk "Goto next window"))
+
+  (jmacs/leader-keys
+    "e" '(:ignore t :wk "Eshell")
+    "e s" '(eshell :wk "Open Eshell")
+    "e h" '(counsel-esh-history :wk "Eshell history"))
 )
 
 ;;; Create reload-jmacs function
@@ -214,9 +230,47 @@
 (use-package sudo-edit
   :config
   (jmacs/leader-keys
-    "f" '(:ignore t :wk "Invoke sudo (force)")
+    "f" '(:ignore t :wk "Invoke sudo (root)")
     "f ." '(sudo-edit-find-file :wk "Open file (root)")
     "f e" '(sudo-edit :wk "Edit file (root)")))
+
+;;; Shell and Terminal Support
+(use-package eshell-syntax-highlighting
+  :after eshell-mode
+  :config
+  (eshell-syntax-highlighting-global-mode +1))
+
+(setq eshell-rc-script (concat user-emacs-directory "eshell/profile")
+      eshell-aliases-file (concat user-emacs-directory "eshell/aliases")
+      eshell-history-size 5000
+      eshell-buffer-maximum-lines 5000
+      eshell-hist-ignoredups t
+      eshell-scroll-to-bottom-on-input t
+      eshell-destroy-buffer-when-process-dies t
+      eshell-visual-commands'("bash" "btop" "fish" "htop" "ssh" "top" "zsh"))
+
+(use-package vterm
+  :config
+  (setq vterm-max-scrollback 5000))
+
+(use-package vterm-toggle
+  :after vterm
+  :config
+  (setq vterm-toggle-fullscreen-p nil)
+  (setq vterm-toggle-scope 'project)
+  (add-to-list 'display-buffer-alist
+	       '((lambda (buffer-or-name _)
+		   (let ((buffer (get-buffer buffer-or-name)))
+		     (with-current-buffer buffer
+		       (or (equal major-mode 'vterm-mode)
+			   (string-prefix-p vterm-buffer-name (buffer-name buffer))))))
+		 (display-buffer-reuse-window display-buffer-at-bottom)
+		 (reusable-frames - visible)
+		 (window-height . 0.3))))
+
+;;; Rainbow Mode
+(use-package rainbow-mode
+  :hook org-mode prog-mode)
 
 ;;; Set font
 (set-face-attribute 'default nil
@@ -245,6 +299,17 @@
 
 (use-package all-the-icons-dired
   :hook (dired-mode . (lambda () (all-the-icons-dired-mode t))))
+
+;;; GUI Theme
+(use-package doom-themes
+  :ensure t
+  :config
+  (setq custom-safe-themes t)
+  (load-theme 'doom-challenger-deep t))
+
+(use-package doom-modeline
+  :ensure t
+  :init (doom-modeline-mode 1))
 
 ;;; GUI settings
 (menu-bar-mode -1)

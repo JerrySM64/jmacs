@@ -1,0 +1,9 @@
+### ALIASES FOR ESH ###
+
+# Use view-file instead of the standard shell command
+alias less view-file $1
+
+# Confirm before overwriting something
+alias cp cp -i $1
+alias mv mv -i $1
+alias rm rm -i $1
