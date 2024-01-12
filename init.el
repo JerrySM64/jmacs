@@ -1,98 +1,44 @@
 ;; This is Jmacs - Jerry's interpretation of GNU Emacs!
 ;; Author:   Jerry Starke 
 ;; Created:  January 09, 2024
-;; Modified: January 11, 2024
-;; Version:  0.0.18
-;; Build:    1A49
+;; Modified: January 12, 2024
+;; Version:  0.1
+;; Build:    1A94
 ;; Homepage: https://github.com/JerrySM64
 
-;;; Install Elpaca
-(defvar elpaca-installer-version 0.6)
-(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-			      :ref nil
-			      :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-			      :build (:not elpaca--activate-package)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
-       (build (expand-file-name "elpaca/" elpaca-builds-directory))
-       (order (cdr elpaca-order))
-       (default-directory repo))
-  (add-to-list 'load-path (if (file-exists-p build) build repo))
-  (unless (file-exists-p repo)
-    (make-directory repo t)
-    (when (< emacs-major-version 28) (require 'subr-x))
-    (condition-case-unless-debug err
-	(if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-		 ((zerop (call-process "git" nil buffer t "clone"
-				       (plist-get order :repo) repo)))
-		 ((zerop (call-process "git" nil buffer t "checkout"
-				       (or (plist-get order :ref) "--"))))
-		 (emacs (concat invocation-directory invocation-name))
-		 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-				       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-		 ((require 'elpaca))
-		 ((elpaca-generate-autoloads "elpaca" repo)))
-	    (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-	  (error "%s" (with-current-buffer buffer (buffer-string))))
-      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-  (unless (require 'elpaca-autoloads nil t)
-    (require 'elpaca)
-    (elpaca-generate-autoloads "elpaca" repo)
-    (load "./elpaca-autoloads")))
-(add-hook 'after-init-hook #'elpaca-process-queues)
-(elpaca `(,@elpaca-order))
+;; Install MELPA
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
 
-;;; Evil Mode
 
-;; Install a package via the elpaca macro
-;; See the "recipes" section of the manual for more details.
+;; Make Emacs stop putting stuff into this file
+(setq custom-file (make-temp-file "emacs-custom"))
+(load custom-file 'noerror)
 
-;; (elpaca example-package)
 
-;; Install use-package support
-(elpaca elpaca-use-package
-  ;; Enable :elpaca use-package keyword.
-  (elpaca-use-package-mode)
-  ;; Assume :elpaca t unless otherwise specified.
-  (setq elpaca-use-package-by-default t))
-
-;; Block until current queue processed.
-(elpaca-wait)
-
-;;When installing a package which modifies a form used at the top-level
-;;(e.g. a package which adds a use-package key word),
-;;use `elpaca-wait' to block until that package has been installed/configured.
-;;For example:
-;;(use-package general :demand t)
-;;(elpaca-wait)
-
-;; Expands to: (elpaca evil (use-package evil :demand t))
+;; Evil Mode
 (use-package evil
-    :init
-    (setq evil-want-integration t)
-    (setq evil-want-keybinding nil)
-    (setq evil-vsplit-window-right t)
-    (setq evil-split-window-below t)
-    (evil-mode))
-  (use-package evil-collection
-    :after evil
-    :config
-    (setq evil-collection-mode-list '(dashbaord dired ibuffer))
-    (evil-collection-init))
-  (use-package evil-tutor)
+  :ensure t
+  :init
+  (setq evil-want-integration t
+	evil-want-keybinding nil
+	evil-vsplit-window-right t
+	evil-split-window-below t)
+  (evil-mode))
+(use-package evil-collection
+  :ensure t
+  :after evil
+  :config
+  (setq evil-collection-mode-list '(dashbaord dired ibuffer))
+  (evil-collection-init))
+(use-package evil-tutor
+  :ensure t)
 
-;;Turns off elpaca-use-package-mode current declaration
-;;Note this will cause the declaration to be interpreted immediately (not deferred).
-;;Useful for configuring built-in emacs features.
-(use-package emacs :elpaca nil :config (setq ring-bell-function #'ignore))
 
-;; Don't install anything. Defer execution of BODY
-(elpaca nil (message "deferred"))
-
-;;; Configuration of the general package
+;; Configuration of the general package
 (use-package general
+  :ensure t
   :config
   (general-evil-setup)
 
@@ -118,7 +64,6 @@
     "t l" '(display-line-numbers-mode :wk "Toggle line numbers")
     "t t" '(visual-line-mode :wk "Toggle truncated lines")
     "t v" '(vterm-toggle :wk "Toggle vterm"))
-    
 
   (jmacs/leader-keys
     "E" '(:ignore t :wk "Evaluate")
@@ -170,17 +115,19 @@
   (jmacs/leader-keys
     "e" '(:ignore t :wk "Eshell")
     "e s" '(eshell :wk "Open Eshell")
-    "e h" '(counsel-esh-history :wk "Eshell history"))
-)
+    "e h" '(counsel-esh-history :wk "Eshell history")))
 
-;;; Create reload-jmacs function
+
+;; Create reload-jmacs function
   (defun reload-jmacs ()
     (interactive)
     (load-file user-init-file)
     (load-file user-init-file))
-    
-;;; Which Key
+
+
+;; Which Key
 (use-package which-key
+  :ensure t
   :init
   (which-key-mode 1)
   :config
@@ -195,20 +142,26 @@
 	which-key-idle-delay 0.6
 	which-key-max-description-length 25
 	which-key-allow-imprecise-window-fit t
+	which-key-allow-evil-operators t
         which-key-separator "  " ))
 
-;;; Ivy and Counsel
+
+;; Ivy and Counsel
 (use-package counsel
+  :ensure t
   :after ivy
   :config (counsel-mode))
 
 (use-package ivy
+  :ensure t
   :custom
   (setq ivy-use-virtual-buffers t)
   (setq ivy-count-format "(%d/%d) ")
   (setq enable-recursive-minibuffers t)
   :config
-  (ivy-mode))
+  (ivy-mode)
+  (define-key ivy-minibuffer-map (kbd "TAB") 'ivy-alt-done)
+  (define-key ivy-minibuffer-map (kbd "<tab>") 'ivy-alt-done))
 
 (use-package all-the-icons-ivy-rich
   :ensure t
@@ -226,16 +179,20 @@
   (ivy-set-display-transformer 'ivy-switch-buffer
 			       'ivy-rich-switch-buffer-transformer))
 
-;;; sudo-edit
+
+;; sudo-edit
 (use-package sudo-edit
+  :ensure t
   :config
   (jmacs/leader-keys
     "f" '(:ignore t :wk "Invoke sudo (root)")
     "f ." '(sudo-edit-find-file :wk "Open file (root)")
     "f e" '(sudo-edit :wk "Edit file (root)")))
 
-;;; Shell and Terminal Support
+
+;; Shell and Terminal Support
 (use-package eshell-syntax-highlighting
+  :ensure t
   :after eshell-mode
   :config
   (eshell-syntax-highlighting-global-mode +1))
@@ -250,10 +207,12 @@
       eshell-visual-commands'("bash" "btop" "fish" "htop" "ssh" "top" "zsh"))
 
 (use-package vterm
+  :ensure t
   :config
   (setq vterm-max-scrollback 5000))
 
 (use-package vterm-toggle
+  :ensure t
   :after vterm
   :config
   (setq vterm-toggle-fullscreen-p nil)
@@ -268,11 +227,210 @@
 		 (reusable-frames - visible)
 		 (window-height . 0.3))))
 
-;;; Rainbow Mode
+
+;; Rainbow Mode
 (use-package rainbow-mode
+  :ensure
   :hook org-mode prog-mode)
 
-;;; Set font
+
+;; Aditional language support
+;;; Go
+(use-package go-mode
+  :ensure t
+  :hook
+  (go-mode . (lambda ()
+               ;; Customize according to your preferences
+               (setq tab-width 4)
+               (setq indent-tabs-mode t))))
+
+(use-package go-eldoc
+  :ensure t
+  :hook (go-mode . go-eldoc-setup))
+
+(use-package go-rename
+  :ensure t)
+
+(use-package go-guru
+  :ensure t
+  :config
+  (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
+
+;;; Haskell
+(use-package haskell-mode
+  :ensure t
+  :hook
+  (haskell-mode . interactive-haskell-mode)
+  (haskell-mode . haskell-indentation-mode)
+  (haskell-mode . haskell-doc-mode)
+  (haskell-mode . turn-on-haskell-indentation))
+
+(use-package flycheck-haskell
+  :ensure t
+  :config
+  (add-hook 'flycheck-mode-hook #'flycheck-haskell-setup))
+
+(use-package hindent
+  :ensure t
+  :hook (haskell-mode . hindent-mode))
+
+;;; HTML & CSS
+(use-package web-mode
+  :ensure t
+  :mode (("\\.html?\\'" . web-mode)
+         ("\\.css\\'"   . web-mode))
+  :config
+  (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2)
+  (setq web-mode-enable-auto-pairing t)
+  (setq web-mode-enable-auto-closing t)
+  (setq web-mode-enable-current-element-highlight t)
+  (add-hook 'web-mode-hook 'emmet-mode))
+
+(use-package company-web
+  :ensure t
+  :config
+  (add-hook 'web-mode-hook
+            (lambda ()
+              (set (make-local-variable 'company-backends) '(company-web-html))
+              (company-mode))))
+
+;;; JavaScript
+(use-package js2-mode
+  :ensure t
+  :mode (("\\.js\\'" . js2-mode))
+  :config
+  (setq js-indent-level 2)
+  (setq js2-basic-offset 2)
+  (setq js2-strict-missing-semi-warning nil)
+  (setq js2-strict-trailing-comma-warning nil)
+  (setq js2-missing-semi-one-line-override nil))
+
+;;; Julia
+(use-package julia-mode
+  :ensure t)
+
+(use-package julia-repl
+  :ensure t
+  :hook (julia-mode . julia-repl-mode))
+
+(use-package flycheck-julia
+  :ensure t
+  :config
+  (add-hook 'flycheck-mode-hook #'flycheck-julia-setup))
+
+;;; Lua
+(use-package lua-mode
+  :ensure t
+  :mode ("\\.lua\\'" . lua-mode)
+  :config
+  (setq lua-indent-level 2)
+  (setq lua-indent-string-contents t))
+
+;;; Nix
+(use-package nix-mode
+  :ensure t
+  :defer t
+  :mode ("\\.nix\\'" "\\.nix.in\\'"))
+(use-package nix-drv-mode
+  :ensure nix-mode
+  :mode "\\.drv\\'")
+(use-package nix-shell
+  :ensure nix-mode
+  :commands (nix-shell-unpack nix-shell-configure nix-shell-build))
+(use-package nix-repl
+  :ensure nix-mode
+  :commands (nix-repl))
+
+;;; Node
+(use-package nodejs-repl
+  :ensure t)
+
+;;; OCaml
+(use-package tuareg
+  :ensure t
+  :mode (("\\.ml[ily]?$" . tuareg-mode)
+         ("\\.topml$" . tuareg-mode))
+  :config
+  (setq tuareg-indent-align-with-first-arg t)
+  (setq tuareg-italic-comments t)
+  (setq tuareg-prettify-symbols-full t)
+  (setq tuareg-font-lock-symbols nil)
+  (setq merlin-command 'opam)
+  (add-hook 'tuareg-mode-hook 'merlin-mode)
+  (add-hook 'caml-mode-hook 'merlin-mode))
+
+(use-package utop
+  :ensure t
+  :hook (tuareg-mode . utop-minor-mode))
+
+(use-package merlin
+  :ensure t)
+
+(use-package flycheck-ocaml
+  :ensure t)
+
+;;; PHP
+(use-package php-mode
+  :ensure t
+  :mode ("\\.php\\'" . php-mode)
+  :config
+  (setq php-mode-coding-style 'psr2)
+  (setq php-template-compatibility nil))
+
+(use-package phpunit
+  :ensure t)
+
+(use-package composer
+  :ensure t)
+
+;;; Scala
+(use-package scala-mode
+  :ensure t
+  :interpreter
+  ("scala" . scala-mode))
+
+(use-package sbt-mode
+  :ensure t
+  :commands sbt-start sbt-command)
+
+;;; TOML
+(use-package toml-mode
+  :ensure t
+  :mode ("\\.toml\\'" . toml-mode))
+
+;;; Rust
+(use-package racer
+  :ensure t
+  :hook (rust-mode . racer-mode))
+
+(use-package rust-mode
+  :ensure t
+  :mode ("\\.rs\\'" . rust-mode)
+  :config
+  (setq rust-indent-offset 2)
+  (add-hook 'rust-mode-hook #'racer-mode)
+  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+
+;;;Zig
+(use-package zig-mode
+  :ensure t
+  :mode ("\\.zig\\'" . zig-mode))
+
+;;; Flycheck for syntax checking
+(use-package flycheck
+  :ensure t
+  :config
+  (add-hook 'js2-mode-hook #'flycheck-mode)
+  (add-hook 'lua-mode-hook #'flycheck-mode)
+  (add-hook 'tuareg-mode-hook #'flycheck-mode)
+  (add-hook 'php-mode-hook #'flycheck-mode)
+  (add-hook 'scala-mode-hook #'flycheck-mode)
+  (add-hook 'zig-mode-hook #'flycheck-mode))
+
+
+;; Set default font
 (set-face-attribute 'default nil
   :font "JetBrains Mono"
   :height 100
@@ -292,15 +450,18 @@
 (add-to-list 'default-frame-alist '(font . "JetBrains Mono-10"))
 (setq-default line-spacing 0.1)
 
-;;; Get Icons
+
+;; Get Icons
 (use-package all-the-icons
   :ensure t
   :if (display-graphic-p))
 
 (use-package all-the-icons-dired
+  :ensure t
   :hook (dired-mode . (lambda () (all-the-icons-dired-mode t))))
 
-;;; GUI Theme
+
+;; Default GUI Theme
 (use-package doom-themes
   :ensure t
   :config
@@ -311,14 +472,42 @@
   :ensure t
   :init (doom-modeline-mode 1))
 
-;;; GUI settings
+
+;;Default GUI Dashboard
+(use-package savehist
+  :init
+  (setq savehist-additional-variables '(projectile-project-type projectile-project-root))
+  (savehist-mode 1))
+
+(use-package projectile
+  :ensure t)
+
+(use-package dashboard
+  :ensure t
+  :init
+  (setq dashboard-display-icons-p t)
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq dashboard-banner-logo-title "Welcome to Jmacs!")
+  (setq dashboard-startup-banner (concat user-emacs-directory "jmacs-logo.txt"))
+  (setq dashboard-center-content t)
+  (setq dashboard-show-items t)
+  (setq dashboard-items '((recents . 7)
+			  (projects . 7)))
+  :config
+  (dashboard-setup-startup-hook))
+(setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
+
+
+;; Default GUI settings
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
 (global-set-key (kbd "C-+") 'text-scale-increase)
 (global-set-key (kbd "C--") 'text-scale-decrease)
-		
+
 (global-display-line-numbers-mode 1)
 (global-visual-line-mode t)
 (tab-bar-mode 1)
+(add-to-list 'default-frame-alist '(alpha-background . 80))
