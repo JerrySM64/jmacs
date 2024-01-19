@@ -1,9 +1,9 @@
 ;; This is Jmacs - Jerry's interpretation of GNU Emacs!
 ;; Author:   Jerry Starke 
 ;; Created:  January 09, 2024
-;; Modified: January 12, 2024
+;; Modified: January 19, 2024
 ;; Version:  0.1
-;; Build:    1A96
+;; Build:    1A97
 ;; Homepage: https://github.com/JerrySM64
 
 ;; Install MELPA
@@ -428,6 +428,11 @@
   (add-hook 'scala-mode-hook #'flycheck-mode)
   (add-hook 'zig-mode-hook #'flycheck-mode))
 
+;;; Company mode for code completion
+(use-package company
+  :ensure t
+  :config
+  (add-hook 'after-init-hook 'global-company-mode))
 
 ;; Set default font
 (set-face-attribute 'default nil
