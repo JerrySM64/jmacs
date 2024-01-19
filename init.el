@@ -3,7 +3,7 @@
 ;; Created:  January 09, 2024
 ;; Modified: January 12, 2024
 ;; Version:  0.1
-;; Build:    1A94
+;; Build:    1A96
 ;; Homepage: https://github.com/JerrySM64
 
 ;; Install MELPA
@@ -277,8 +277,7 @@
 ;;; HTML & CSS
 (use-package web-mode
   :ensure t
-  :mode (("\\.html?\\'" . web-mode)
-         ("\\.css\\'"   . web-mode))
+  :mode (("\\.html?\\'" . web-mode))
   :config
   (setq web-mode-markup-indent-offset 2)
   (setq web-mode-css-indent-offset 2)
@@ -489,7 +488,7 @@
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
   (setq dashboard-banner-logo-title "Welcome to Jmacs!")
-  (setq dashboard-startup-banner (concat user-emacs-directory "jmacs-logo.txt"))
+  (setq dashboard-startup-banner (concat user-emacs-directory "jmacs-logo.png"))
   (setq dashboard-center-content t)
   (setq dashboard-show-items t)
   (setq dashboard-items '((recents . 7)
